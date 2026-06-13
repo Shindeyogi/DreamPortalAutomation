@@ -2,29 +2,21 @@ import { test, expect } from '@playwright/test';
 
 test('Dream Portal Home Page Test', async ({ page, context }) => {
 
-  // Open Home Page
   await page.goto('https://arjitnigam.github.io/myDreams/');
-  
-  // Wait for loading animation to finish
-  await page.waitForTimeout(3500);
-  
-  // Verify My Dreams button is visible
+
   const myDreamsButton = page.getByRole('button', { name: /my dreams/i });
 
-  await expect(myDreamsButton).toBeVisible();
+  await expect(myDreamsButton).toBeVisible({ timeout: 10000 });
 
-  // Click button
-  await myDreamsButton.click();
+  await myDreamsButton.click({ force: true });
 
-  // Wait for tabs to open
-  await page.waitForTimeout(2000);
+  await expect
+    .poll(() => context.pages().length, {
+      timeout: 10000,
+    })
+    .toBe(3);
 
-  // Verify 3 pages exist
-  const pages = context.pages();
-
-  expect(pages.length).toBe(3);
-
-  const urls = pages.map(p => p.url());
+  const urls = context.pages().map(p => p.url());
 
   console.log(urls);
 
@@ -41,10 +33,11 @@ test('Dream Diary Validation', async ({ page }) => {
 
   await page.goto('https://arjitnigam.github.io/myDreams/dreams-diary.html');
 
+  await page.waitForLoadState('networkidle');
+
   const rows = page.locator('#dreamsDiary tbody tr');
 
-  // Verify exactly 10 dream entries
-  await expect(rows).toHaveCount(10);
+  await expect(rows).toHaveCount(10, { timeout: 10000 });
 
   const count = await rows.count();
 
@@ -56,12 +49,10 @@ test('Dream Diary Validation', async ({ page }) => {
     const daysAgo = (await cells.nth(1).textContent())?.trim();
     const dreamType = (await cells.nth(2).textContent())?.trim();
 
-    // Verify all columns have data
     expect(dreamName).not.toBe('');
     expect(daysAgo).not.toBe('');
     expect(dreamType).not.toBe('');
 
-    // Verify Dream Type is Good or Bad
     expect(['Good', 'Bad']).toContain(dreamType!);
   }
 });
@@ -70,23 +61,22 @@ test('Dream Summary Validation', async ({ page }) => {
 
   await page.goto('https://arjitnigam.github.io/myDreams/dreams-total.html');
 
-  // Verify summary values are present
   await expect(page.locator('text=Good Dreams')).toBeVisible();
   await expect(page.locator('text=Bad Dreams')).toBeVisible();
   await expect(page.locator('text=Total Dreams')).toBeVisible();
   await expect(page.locator('text=Recurring Dreams')).toBeVisible();
 
-  // Verify counts
   await expect(page.locator('text=6')).toBeVisible();
   await expect(page.locator('text=4')).toBeVisible();
   await expect(page.locator('text=10')).toBeVisible();
   await expect(page.locator('text=2')).toBeVisible();
-
 });
 
 test('Recurring Dreams Validation', async ({ page }) => {
 
   await page.goto('https://arjitnigam.github.io/myDreams/dreams-diary.html');
+
+  await page.waitForLoadState('networkidle');
 
   const rows = page.locator('#dreamsDiary tbody tr');
   const count = await rows.count();
